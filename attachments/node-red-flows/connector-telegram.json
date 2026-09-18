@@ -1,0 +1,388 @@
+[
+    {
+        "id": "151f81fde68f4415",
+        "type": "comment",
+        "z": "54dea37b107ad360",
+        "name": "GetChatID",
+        "info": "News and information about the bot:\n@idbotnews\n\nPlease, subscribe ;)\n\n---\n\nGroup\nDierikerInfoGruppe\nid: -527637531\n\n---\nChannel\nDieriker Info\nid: -1001558462676",
+        "x": 100,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "3c2a1f9336db7112",
+        "type": "inject",
+        "z": "54dea37b107ad360",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "300",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payloadType": "date",
+        "x": 130,
+        "y": 100,
+        "wires": [
+            [
+                "cb0b33aef95b071d"
+            ]
+        ]
+    },
+    {
+        "id": "cb0b33aef95b071d",
+        "type": "http request",
+        "z": "54dea37b107ad360",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://api-dib.k8s-tst.jambor.pro/api/channel/1/oldestunsentnews",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "basic",
+        "x": 310,
+        "y": 100,
+        "wires": [
+            [
+                "b7a9e97fb5779156"
+            ]
+        ]
+    },
+    {
+        "id": "28f6bf332ebdd6b7",
+        "type": "json",
+        "z": "54dea37b107ad360",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 630,
+        "y": 80,
+        "wires": [
+            [
+                "6deab78d9f15ccc5"
+            ]
+        ]
+    },
+    {
+        "id": "6deab78d9f15ccc5",
+        "type": "function",
+        "z": "54dea37b107ad360",
+        "name": "set global newsId",
+        "func": "global.set(\"newsId\",msg.payload.id);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1050,
+        "y": 80,
+        "wires": [
+            [
+                "a395d348b8b1cca5"
+            ]
+        ]
+    },
+    {
+        "id": "a395d348b8b1cca5",
+        "type": "function",
+        "z": "54dea37b107ad360",
+        "name": "create telegram payload",
+        "func": "/*\nTelegram bot message formating:\nsource: https://core.telegram.org/bots/api#formatting-options\nnew line: %0A\n\n*/\n\nvar telegramChatId = -1001558462676;\nvar telegramType = 'message';\nvar telegramParseMode = 'Markdown';\nvar telegramDisablePreview = true;\n\nvar telegramTitle = msg.payload.title;\nvar telegramDescription = msg.payload.description;\nvar telegramDateOriginalPost = new Date(msg.payload.dateOriginalPost+'Z');\nvar day = telegramDateOriginalPost.getDate();\nvar month = telegramDateOriginalPost.getMonth()+1; // months are zero based\nvar year = telegramDateOriginalPost.getFullYear();\ntelegramDateOriginalPost = day+'.'+month+'.'+year;\nvar telegramLinkOriginalPost = '[Nachricht lesen: '+msg.payload.linkOriginalPost+']('+msg.payload.linkOriginalPost+')';\nvar telegramContent = telegramTitle+'\\n\\n'+telegramDescription+'\\n\\n'+telegramLinkOriginalPost+'\\n\\n(Veröffentlicht: '+telegramDateOriginalPost+')';\n\nmsg.payload = {chatId : telegramChatId, type : telegramType, content : telegramContent};\nmsg.payload.options = {parse_mode : telegramParseMode, disable_web_page_preview : telegramDisablePreview};\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 250,
+        "y": 300,
+        "wires": [
+            [
+                "14ce7ada0d03b8f3"
+            ]
+        ]
+    },
+    {
+        "id": "14ce7ada0d03b8f3",
+        "type": "telegram sender",
+        "z": "54dea37b107ad360",
+        "name": "",
+        "bot": "a5a5ced7728f0317",
+        "haserroroutput": true,
+        "outputs": 2,
+        "x": 480,
+        "y": 300,
+        "wires": [
+            [
+                "32269cfae3ef6bca"
+            ],
+            [
+                "26ab64f9fb15a383"
+            ]
+        ]
+    },
+    {
+        "id": "32269cfae3ef6bca",
+        "type": "function",
+        "z": "54dea37b107ad360",
+        "name": "",
+        "func": "/*\n{\n  \"newsId\": 0,\n  \"channelId\": 0,\n  \"dateOfBroadcast\": \"2021-08-24\"\n}\n*/\n\nvar apiNewsId = global.get(\"newsId\");\nvar apiChannelId = 1;\nvar apiDateOfBroadcast = new Date();\n\nmsg.payload = {newsId : apiNewsId, channelId : apiChannelId, dateOfBroadcast : apiDateOfBroadcast};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 280,
+        "wires": [
+            [
+                "034521bde7710957"
+            ]
+        ]
+    },
+    {
+        "id": "034521bde7710957",
+        "type": "http request",
+        "z": "54dea37b107ad360",
+        "name": "",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://api-dib.k8s-tst.jambor.pro/api/broadcast",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "basic",
+        "x": 830,
+        "y": 280,
+        "wires": [
+            [
+                "41a47b7d7c29fd17"
+            ]
+        ]
+    },
+    {
+        "id": "b7a9e97fb5779156",
+        "type": "switch",
+        "z": "54dea37b107ad360",
+        "name": "",
+        "property": "statusCode",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "neq",
+                "v": "404",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "404",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 470,
+        "y": 100,
+        "wires": [
+            [
+                "28f6bf332ebdd6b7"
+            ],
+            [
+                "a5937613567cb08c"
+            ]
+        ]
+    },
+    {
+        "id": "fec0e95e15e930a8",
+        "type": "debug",
+        "z": "54dea37b107ad360",
+        "name": "log to stdout",
+        "active": true,
+        "tosidebar": false,
+        "console": true,
+        "tostatus": false,
+        "complete": "\"[http: \"&statusCode&\"] [node: \"&topic&\"]\"&payload",
+        "targetType": "jsonata",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1180,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "41a47b7d7c29fd17",
+        "type": "change",
+        "z": "54dea37b107ad360",
+        "name": "Set Topic",
+        "rules": [
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "Telegram Connector",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1000,
+        "y": 280,
+        "wires": [
+            [
+                "fec0e95e15e930a8",
+                "b62aae07d55c5b09"
+            ]
+        ]
+    },
+    {
+        "id": "8b495960e7f900e2",
+        "type": "debug",
+        "z": "54dea37b107ad360",
+        "name": "log to stdout",
+        "active": true,
+        "tosidebar": false,
+        "console": true,
+        "tostatus": false,
+        "complete": "\"[ERROR Sending message] [node: \"&topic&\"]\"&payload",
+        "targetType": "jsonata",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "26ab64f9fb15a383",
+        "type": "change",
+        "z": "54dea37b107ad360",
+        "name": "Set Topic",
+        "rules": [
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "Telegram Connector",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 660,
+        "y": 340,
+        "wires": [
+            [
+                "8b495960e7f900e2"
+            ]
+        ]
+    },
+    {
+        "id": "a872955a1baffafe",
+        "type": "debug",
+        "z": "54dea37b107ad360",
+        "name": "log to stdout",
+        "active": true,
+        "tosidebar": false,
+        "console": true,
+        "tostatus": false,
+        "complete": "\"[http: \"&statusCode&\"] [node: \"&topic&\"]\"&payload",
+        "targetType": "jsonata",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 820,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "a5937613567cb08c",
+        "type": "change",
+        "z": "54dea37b107ad360",
+        "name": "Set Topic",
+        "rules": [
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "Telegram Connector",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 640,
+        "y": 120,
+        "wires": [
+            [
+                "a872955a1baffafe"
+            ]
+        ]
+    },
+    {
+        "id": "b62aae07d55c5b09",
+        "type": "delay",
+        "z": "54dea37b107ad360",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "30",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "x": 120,
+        "y": 160,
+        "wires": [
+            [
+                "cb0b33aef95b071d"
+            ]
+        ]
+    },
+    {
+        "id": "a5a5ced7728f0317",
+        "type": "telegram bot",
+        "botname": "DierikerInfoBot",
+        "usernames": "",
+        "chatids": "-527637531",
+        "baseapiurl": "",
+        "updatemode": "none",
+        "pollinterval": "300",
+        "usesocks": false,
+        "sockshost": "",
+        "socksport": "6667",
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "botpath": "",
+        "localbotport": "8443",
+        "publicbotport": "8443",
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    }
+]
