@@ -1,0 +1,302 @@
+[
+    {
+        "id": "6bbda5793711f0bd",
+        "type": "twitter out",
+        "z": "17cc84e5cd5ca7f0",
+        "twitter": "",
+        "name": "Tweet",
+        "x": 390,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "c50ed25d46121396",
+        "type": "inject",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "300",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payloadType": "date",
+        "x": 130,
+        "y": 60,
+        "wires": [
+            [
+                "23aadb7efa695dd4"
+            ]
+        ]
+    },
+    {
+        "id": "23aadb7efa695dd4",
+        "type": "http request",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://api-dib.k8s-tst.jambor.pro/api/channel/3/oldestunsentnews",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "basic",
+        "x": 310,
+        "y": 60,
+        "wires": [
+            [
+                "96f09683bb37a37d"
+            ]
+        ]
+    },
+    {
+        "id": "e130875e0c5ac1ed",
+        "type": "json",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 630,
+        "y": 40,
+        "wires": [
+            [
+                "6071b7c6459d2c76"
+            ]
+        ]
+    },
+    {
+        "id": "6071b7c6459d2c76",
+        "type": "function",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "set global newsId",
+        "func": "global.set(\"newsId\",msg.payload.id);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 950,
+        "y": 40,
+        "wires": [
+            [
+                "e882ec08b6c92f4b"
+            ]
+        ]
+    },
+    {
+        "id": "e882ec08b6c92f4b",
+        "type": "function",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "create twitter payload",
+        "func": "var twitterTitle = msg.payload.title;\nvar twitterDescription = msg.payload.description;\nvar twitterDateOriginalPost = new Date(msg.payload.dateOriginalPost+'Z');\nvar day = twitterDateOriginalPost.getDate();\nvar month = twitterDateOriginalPost.getMonth()+1; // months are zero based\nvar year = twitterDateOriginalPost.getFullYear();\ntwitterDateOriginalPost = day+'.'+month+'.'+year;\nvar twitterLinkOriginalPost = 'Nachricht lesen: '+msg.payload.linkOriginalPost;\nvar twitterContent = twitterTitle+'\\n\\n'+twitterDescription+'\\n\\n'+twitterLinkOriginalPost+'\\n\\n(Veröffentlicht: '+twitterDateOriginalPost+', #Dierikon)';\n\nmsg.payload = twitterContent;\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 200,
+        "y": 400,
+        "wires": [
+            [
+                "6bbda5793711f0bd",
+                "c4571d5821576719"
+            ]
+        ]
+    },
+    {
+        "id": "c4571d5821576719",
+        "type": "function",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "",
+        "func": "/*\n{\n  \"newsId\": 0,\n  \"channelId\": 0,\n  \"dateOfBroadcast\": \"2021-08-24\"\n}\n*/\n\nvar apiNewsId = global.get(\"newsId\");\nvar apiChannelId = 3;\nvar apiDateOfBroadcast = new Date();\n\nmsg.payload = {newsId : apiNewsId, channelId : apiChannelId, dateOfBroadcast : apiDateOfBroadcast};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 440,
+        "wires": [
+            [
+                "2474cf04ba1c9e32"
+            ]
+        ]
+    },
+    {
+        "id": "2474cf04ba1c9e32",
+        "type": "http request",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://api-dib.k8s-tst.jambor.pro/api/broadcast",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "basic",
+        "x": 570,
+        "y": 440,
+        "wires": [
+            [
+                "faaa2a448eee61ea"
+            ]
+        ]
+    },
+    {
+        "id": "96f09683bb37a37d",
+        "type": "switch",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "",
+        "property": "statusCode",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "neq",
+                "v": "404",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "404",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 470,
+        "y": 60,
+        "wires": [
+            [
+                "e130875e0c5ac1ed"
+            ],
+            [
+                "a7ca1ed7a9450567"
+            ]
+        ]
+    },
+    {
+        "id": "f691315318521098",
+        "type": "debug",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "log to stdout",
+        "active": true,
+        "tosidebar": false,
+        "console": true,
+        "tostatus": false,
+        "complete": "\"[http: \"&statusCode&\"] [node: \"&topic&\"]\"&payload",
+        "targetType": "jsonata",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 920,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "faaa2a448eee61ea",
+        "type": "change",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "Set Topic",
+        "rules": [
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "Twitter Connector",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 740,
+        "y": 440,
+        "wires": [
+            [
+                "f691315318521098",
+                "8b2bb054a072c426"
+            ]
+        ]
+    },
+    {
+        "id": "1bfc163053bd776d",
+        "type": "debug",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "log to stdout",
+        "active": true,
+        "tosidebar": false,
+        "console": true,
+        "tostatus": false,
+        "complete": "\"[http: \"&statusCode&\"] [node: \"&topic&\"]\"&payload",
+        "targetType": "jsonata",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 820,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "a7ca1ed7a9450567",
+        "type": "change",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "Set Topic",
+        "rules": [
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "Twitter Connector",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 640,
+        "y": 80,
+        "wires": [
+            [
+                "1bfc163053bd776d"
+            ]
+        ]
+    },
+    {
+        "id": "8b2bb054a072c426",
+        "type": "delay",
+        "z": "17cc84e5cd5ca7f0",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "30",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "x": 120,
+        "y": 120,
+        "wires": [
+            [
+                "23aadb7efa695dd4"
+            ]
+        ]
+    }
+]
