@@ -1,0 +1,112 @@
+---
+# # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# Content: build dib
+# Author: Jan Jambor, XWare GmbH
+# Author URI: https://xwr.ch
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # #
+
+parameters:
+- name: stage
+  displayName: Stage
+  type: string
+  default: Build
+  values:
+  - Build
+  - Deploy
+
+trigger:
+- main
+
+resources:
+  repositories:
+    - repository: ci-central
+      name: JJsProjects/CiCentral
+      type: git
+      ref: main
+
+variables:
+  - name: dockerRegistryServiceConnection
+    value: 'jjscontainers'
+  - name: imageRepository
+    value: 'dib'
+  - name: containerRegistry
+    value: 'jjscontainers.azurecr.io'
+  - name: dockerfilePath
+    value: '$(Build.SourcesDirectory)/src/DorfInfoBot.API/Dockerfile'
+  - name: tag
+    value: '$(Build.BuildId)'
+
+pool:
+  name: jjspool
+  demands:
+  - Agent.OS -equals Linux
+
+stages:
+- stage: Build
+  displayName: Build a new Docker image
+  condition: eq('${{ parameters.stage }}', 'Build')
+  jobs:
+  - job: Build
+    displayName: Build a new Docker image
+    steps:
+    - template: ci-templates/sonarqube/sonarqube-prepare.yaml@ci-central
+      parameters:
+        scannerMode: 'MSBuild'
+        cliProjectKey: 'JJsProjects_dib_AYsGgaa-1-YL2-_6dJ0F'
+
+    - task: DotNetCoreCLI@2
+      displayName: Restore
+      inputs:
+        command: restore
+        projects: '**/*.csproj'
+        arguments: '-r linux-x64' 
+        includeNuGetOrg: true
+      env:
+        DOTNET_CLI_HOME: '$(Pipeline.Workspace)/.dotnet'
+
+    - task: DotNetCoreCLI@2
+      displayName: Build
+      inputs:
+        command: build
+        projects: '**/*.csproj'
+        arguments: '-c release -o out -r linux-x64 --self-contained true --no-restore' 
+      env:
+        DOTNET_CLI_HOME: '$(Pipeline.Workspace)/.dotnet'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts'
+      inputs:
+        PathtoPublish: '$(Build.SourcesDirectory)/out'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+    - template: ci-templates/sonarqube/sonarqube-analyze-publish.yaml@ci-central
+
+    - task: DownloadBuildArtifacts@0
+      displayName: 'Download Artifacts'
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'drop'
+        downloadPath: '$(Pipeline.Workspace)'
+
+    - task: Docker@2
+      displayName: Build an image
+      inputs:
+        command: build
+        repository: $(imageRepository)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        dockerfile: $(dockerfilePath)
+        tags: $(tag)
+        arguments: '--build-arg BUILD_TAG=$(tag)'
+        buildContext: '$(Pipeline.Workspace)/drop'
+    
+    - task: Docker@2
+      displayName: Push an image to container registry
+      inputs:
+        command: push
+        repository: $(imageRepository)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: $(tag)
